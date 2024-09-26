@@ -1,2 +1,2 @@
 # PesterUtility
-Utility functions that fur use when Pester testing
+Utility functions that assist when Pester testing
