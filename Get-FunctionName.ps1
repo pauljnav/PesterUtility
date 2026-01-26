@@ -6,11 +6,11 @@ function Get-FunctionName
 .DESCRIPTION
     This function reads a PowerShell script from a specified path, and using AST method it extracts all function
     and filter names defined in the script. Useful to collect function names for comparing against your Pester test suite.
-.PARAMETER fileName
+.PARAMETER Path
     The path to the PowerShell script file from which to extract function and filter names.
 .EXAMPLE
     This command extracts and displays the names of functions and filters defined in the script
-    Get-FunctionName -ScriptPath "C:\Path\To\Script.ps1"
+    Get-FunctionName -Path "C:\Path\To\Script.ps1"
 .EXAMPLE
     This command supports pipelining
     $file = Get-Item -Path "C:\Path\To\Script.ps1"
@@ -23,13 +23,13 @@ function Get-FunctionName
     [CmdletBinding()]
     param (
         [Parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName)]
-        [string]$fileName
+        [string]$Path
     )
 
     Process {
         $token = $null
         $errors = $null
-        $ScriptBlockAst = [System.Management.Automation.Language.Parser]::ParseFile($fileName, [ref]$token, [ref]$errors)
+        $ScriptBlockAst = [System.Management.Automation.Language.Parser]::ParseFile($Path, [ref]$token, [ref]$errors)
 
         # extract FunctionDefinitionAst
         $functionNames = $ScriptBlockAst.EndBlock.Statements |

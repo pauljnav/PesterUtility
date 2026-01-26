@@ -3,29 +3,35 @@
 Describe "Get-FunctionName Tests" {
 
     BeforeAll {
-        
+
         # dot load the script under test
-        $scriptPath = "$PSScriptRoot\Get-FunctionName.ps1"
+        $scriptPath = $PSCommandPath.Replace(".Tests.ps1", ".ps1")
         . $scriptPath
-        
+
         $commandName = 'Get-FunctionName'
         $command = Get-Command -Name $commandName -Module $module -ErrorAction Stop
 
         # Create a temporary PowerShell script file with functions to test
-        $testScript = "TestDrive:\TestScript.ps1"
-        Set-Content $testScript -Value @'
+        $tempScriptPath = "TestDrive:\TestScript.ps1"
+        Set-Content $tempScriptPath -Value @'
             function Test-One { }
             function Test-Two { param($param1) }
 '@
 
     }
 
-    It "Should pass ScriptAnalyzer rules" {
-        (Invoke-ScriptAnalyzer $scriptPath).RuleName | Should -Not -Contain 'PSAvoidTrailingWhitespace'
-        (Invoke-ScriptAnalyzer $scriptPath).Severity | Should -Not -Contain 'Warning'
-        Invoke-ScriptAnalyzer $scriptPath | Should -BeNullOrEmpty
+    # using a var <template> command & commandName
+    Context "<command> ScriptAnalyzer" {
+
+        It "Fn <command> Should pass ScriptAnalyzer rules" {
+            $ScriptAnalyzerResult = Invoke-ScriptAnalyzer $scriptPath
+
+            $ScriptAnalyzerResult.RuleName | Should -Not -Contain 'PSAvoidTrailingWhitespace'
+            $ScriptAnalyzerResult.Severity | Should -Not -Contain 'Warning'
+            $ScriptAnalyzerResult | Should -BeNullOrEmpty
+        }
     }
-    
+
     # using a var <template> command & commandName
     Context "<command> Help" {
 
@@ -51,17 +57,6 @@ Describe "Get-FunctionName Tests" {
         }
 
     }
-    
-    It "Should return function names from a valid PowerShell script" {
-        # Act
-        $result =  Get-Item $testScript | Get-FunctionName
-
-        # Assert
-        $result | Should -Not -BeNullOrEmpty
-        $result.Name | Should -Contain "Test-One"
-        $result.Name | Should -Contain "Test-Two"
-        $result.Count | Should -BeExactly 2
-    }
 
     It "Should handle a script with no functions gracefully" {
         # Arrange: Create an empty script file in TestDrive
@@ -73,14 +68,22 @@ Describe "Get-FunctionName Tests" {
 
         # Assert
         $result | Should -BeNullOrEmpty
+    }
 
-        # Cleanup
-        Remove-Item -Path $emptyScriptPath -Force
+    It "Should return function names from a valid PowerShell script" {
+        # Act
+        $result = Get-Item $tempScriptPath | Get-FunctionName
+
+        # Assert
+        $result | Should -Not -BeNullOrEmpty
+        $result.Name | Should -Contain "Test-One"
+        $result.Name | Should -Contain "Test-Two"
+        $result.Count | Should -BeExactly 2
     }
 
     It "Should accept input from the pipeline" {
         # Act
-        $result = $testScript | Get-Item | Get-FunctionName
+        $result = Get-Item $tempScriptPath | Get-FunctionName
 
         # Assert
         $result | Should -Not -BeNullOrEmpty
@@ -97,13 +100,10 @@ $globalVariable = 123
 "@ | Set-Content -Path $commentOnlyScriptPath
 
         # Act
-        $result = Get-FunctionName -FileName $commentOnlyScriptPath
+        $result = Get-FunctionName -Path $commentOnlyScriptPath
 
         # Assert
         $result | Should -BeNullOrEmpty
-
-        # Cleanup
-        Remove-Item -Path $commentOnlyScriptPath -Force
     }
 
 }
