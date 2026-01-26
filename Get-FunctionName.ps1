@@ -1,42 +1,76 @@
-function Get-FunctionName
-{
 <#
 .SYNOPSIS
-    Extracts function and filter names from a PowerShell script.
+    Retrieves top-level function names from a PowerShell script file.
+
 .DESCRIPTION
-    This function reads a PowerShell script from a specified path, and using AST method it extracts all function
-    and filter names defined in the script. Useful to collect function names for comparing against your Pester test suite.
+    Parses a PowerShell script using the PowerShell Abstract Syntax Tree (AST)
+    and returns the names of all function definitions that are not nested
+    inside other functions.
+
+    This is useful for static analysis, linting, documentation generation.
+
 .PARAMETER Path
-    The path to the PowerShell script file from which to extract function and filter names.
+    Path to a PowerShell script file (.ps1, .psm1, etc.) to analyze.
+
+    The path must exist. This parameter accepts pipeline input.
+
 .EXAMPLE
-    This command extracts and displays the names of functions and filters defined in the script
-    Get-FunctionName -Path "C:\Path\To\Script.ps1"
+    Get-FunctionName -Path .\MyScript.ps1
+
+    Returns all top-level function names defined in MyScript.ps1.
+
 .EXAMPLE
-    This command supports pipelining
-    $file = Get-Item -Path "C:\Path\To\Script.ps1"
-    $file | Get-FunctionName
+    Get-ChildItem *.psm1 | Get-FunctionName
+
+    Parses multiple module files and outputs their top-level function names.
+
+.OUTPUTS
+    System.String
+
+    The name of each top-level function found in the script.
+
 .NOTES
     Author: Paul Naughton
-    Date: Jan 2025
-    Version: 1.0
+    Date: Jan 2026
+    Version: 1.1
+
 #>
+function Get-FunctionName {
     [CmdletBinding()]
-    param (
-        [Parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName)]
+    param(
+        [Parameter(
+            Mandatory,
+            ValueFromPipeline,
+            ValueFromPipelineByPropertyName,
+            Position = 1
+        )]
+        [ValidateScript({ Test-Path $_ })]
         [string]$Path
     )
 
-    Process {
-        $token = $null
-        $errors = $null
-        $ScriptBlockAst = [System.Management.Automation.Language.Parser]::ParseFile($Path, [ref]$token, [ref]$errors)
+    begin {
+        $predicate = {
+            param($node)
 
-        # extract FunctionDefinitionAst
-        $functionNames = $ScriptBlockAst.EndBlock.Statements |
-        Where-Object {$_ -is [System.Management.Automation.Language.FunctionDefinitionAst]} |
-            Select-Object Name
+            $node -is [System.Management.Automation.Language.FunctionDefinitionAst] -and
+            $node.Parent -isnot [System.Management.Automation.Language.FunctionDefinitionAst]
+        }
 
-        # PSCustomObject
-        Write-Output $functionNames
+        $searchNestedScriptBlocks = $true
+    }
+
+    process {
+        $ast = [System.Management.Automation.Language.Parser]::ParseFile(
+            $Path,
+            [ref]$null,
+            [ref]$null
+        )
+
+        # Output the function names
+        $ast.FindAll($predicate, $searchNestedScriptBlocks) | ForEach-Object {
+            [PSCustomObject]@{
+                Name = $_.Name
+            }
+        }
     }
 }
