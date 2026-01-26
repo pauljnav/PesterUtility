@@ -56,14 +56,16 @@ function Get-FunctionName {
             $node.Parent -isnot [System.Management.Automation.Language.FunctionDefinitionAst]
         }
 
+        $token = $null
+        $errors = $null
         $searchNestedScriptBlocks = $true
     }
 
     process {
         $ast = [System.Management.Automation.Language.Parser]::ParseFile(
             $Path,
-            [ref]$null,
-            [ref]$null
+            [ref]$token,
+            [ref]$errors
         )
 
         # Output the function names
