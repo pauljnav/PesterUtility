@@ -4,4 +4,5 @@ Utility functions that assist when Pester testing
 
 ### Get-FunctionName.ps1
 An improved function over the original Get-FunctionNamesFromScript.ps1
+
 `Get-FunctionName` can optionally search nested/child functions using the IncludeNestedFunctions `switch parameter`.
