@@ -17,7 +17,7 @@ Describe "Get-FunctionName Tests" {
         Set-Content $tempPath -Value @'
             function Test-One { }
             function Test-Two ([int]$param1) {
-                function Test-Three ([bool]$param1, [string]$param2) { }
+                filter Test-Three ([bool]$param1, [string]$param2) { }
             }
 '@
     }
@@ -108,49 +108,49 @@ Describe "Get-FunctionName Tests" {
 
         It "Result from first (parent) function should have expected properties" {
             # Act
-            $result = Get-FunctionName -Path $tempPath
+            $result = Get-FunctionName -Path $tempPath | Select-Object -First 1
 
             # Assert
-            $result[0].Name | Should -BeExactly 'Test-One'
-            $result[0].IsFilter | Should -BeFalse
-            $result[0].Parameters | Should -BeNullOrEmpty
-            $result[0].LineNumber | Should -BeExactly 1
-            $result[0].FilePath | Should -Match 'TestScript.ps1$'
-            $result[0].FileName | Should -BeExactly 'TestScript.ps1'
-            $result[0].Text | Should -Match '^function Test-One'
+            $result.Name | Should -BeExactly 'Test-One'
+            $result.IsFilter | Should -BeFalse
+            $result.Parameters | Should -BeNullOrEmpty
+            $result.LineNumber | Should -BeExactly 1
+            $result.FilePath | Should -Match 'TestScript.ps1$'
+            $result.FileName | Should -BeExactly 'TestScript.ps1'
+            $result.Text | Should -Match '^function Test-One'
         }
 
         It "Result from second (parent) function should have expected properties" {
             # Act
-            $result = Get-FunctionName -Path $tempPath
+            $result = Get-FunctionName -Path $tempPath | Select-Object -First 1 -Skip 1
 
             # Assert
-            $result[1].Name | Should -BeExactly 'Test-Two'
-            $result[1].IsFilter | Should -BeFalse
-            $result[1].Parameters | Should -Not -BeNullOrEmpty
-            $result[1].Parameters[0].Name | Should -BeExactly '$param1'
-            $result[1].LineNumber | Should -BeExactly 2
-            $result[1].FilePath | Should -Match 'TestScript.ps1$'
-            $result[1].FileName | Should -BeExactly 'TestScript.ps1'
-            $result[1].Text | Should -Match '^function Test-Two'
+            $result.Name | Should -BeExactly 'Test-Two'
+            $result.IsFilter | Should -BeFalse
+            $result.Parameters | Should -Not -BeNullOrEmpty
+            $result.Parameters[0].Name | Should -BeExactly '$param1'
+            $result.LineNumber | Should -BeExactly 2
+            $result.FilePath | Should -Match 'TestScript.ps1$'
+            $result.FileName | Should -BeExactly 'TestScript.ps1'
+            $result.Text | Should -Match '^function Test-Two'
         }
 
         It "Result from third (nested) function should have expected properties" {
             # Act
-            $result = Get-FunctionName -Path $tempPath -IncludeNestedFunctions
+            $result = Get-FunctionName -Path $tempPath -IncludeNestedFunctions | Select-Object -First 1 -Skip 2
 
             # Assert
-            $result[2].Name | Should -BeExactly 'Test-Three'
-            $result[2].IsFilter | Should -BeFalse
-            $result[2].Parameters | Should -Not -BeNullOrEmpty
-            $result[2].Parameters[0].Name | Should -BeExactly '$param1'
-            $result[2].Parameters[1].Name | Should -BeExactly '$param2'
-            $result[2].LineNumber | Should -BeExactly 3
-            $result[2].FilePath | Should -Match 'TestScript.ps1$'
-            $result[2].FileName | Should -BeExactly 'TestScript.ps1'
-            $result[2].Text | Should -Match '^function Test-Three'
+            $result.Name | Should -BeExactly 'Test-Three'
+            $result.IsFilter | Should -BeTrue
+            $result.Parameters | Should -Not -BeNullOrEmpty
+            $result.Parameters[0].Name | Should -BeExactly '$param1'
+            $result.Parameters[1].Name | Should -BeExactly '$param2'
+            $result.LineNumber | Should -BeExactly 3
+            $result.FilePath | Should -Match 'TestScript.ps1$'
+            $result.FileName | Should -BeExactly 'TestScript.ps1'
+            $result.Text | Should -Match '^filter Test-Three'
         }
-        It "Should return an empty if script has only comments and variables" {
+        It "Should return empty if script has only comments and variables" {
             # Arrange: Create a script with no functions in TestDrive
             $commentOnlyScriptPath = "TestDrive:\CommentOnlyScript.ps1"
             @"
