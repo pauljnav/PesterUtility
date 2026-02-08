@@ -33,7 +33,6 @@ Extracts function AST detail from PowerShell scripts using the AST for static an
 Parses a PowerShell script using the PowerShell Abstract Syntax Tree (AST)
 and returns function definition details, like the names and line number of the defined functions
 #>
-
 function Get-FunctionName {
     <#
     .DESCRIPTION
@@ -64,13 +63,14 @@ function Get-FunctionName {
     param (
         [Parameter(
             Mandatory,
+            Position = 0,
             ValueFromPipeline,
             ValueFromPipelineByPropertyName,
-            Position = 0)]
+            HelpMessage = "Specify path to .ps1 or .psm1 file.")]
         [string]$Path,
 
         # optionally include nested functions in search
-        [Parameter()]
+        [Parameter(HelpMessage = "List function names from nested functions.")]
         [switch]$IncludeNestedFunctions
     )
 
@@ -84,7 +84,7 @@ function Get-FunctionName {
             $resolvedPath, [ref]$token, [ref]$errors
         )
 
-        if ($ast -isnot [System.Management.Automation.Language.ScriptBlockAst]) { break }
+        if ($ast -isnot [System.Management.Automation.Language.ScriptBlockAst]) { return }
 
         # extract FunctionDefinitionAst
         $FunctionDefinitionAst = $ast.FindAll( {
@@ -93,7 +93,7 @@ function Get-FunctionName {
             }, $IncludeNestedFunctions
         )
 
-        # output a list of parameters with some caclulated parameters.
+        # output a list of parameters with some calculated parameters.
         $FunctionDefinitionAst | Select-Object Name, IsFilter, Parameters,
         @{N = 'LineNumber'; E = { $_.Extent.StartLineNumber } },
         @{N = 'FilePath'; E = { $_.Extent.File } },
